@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xray-sns-sqs-demo-hello
+spec:
+  selector:
+    matchLabels:
+      app: xray-sns-sqs-demo-hello
+  replicas: 1 # tells deployment to run 2 pods matching the template
+  template:
+    metadata:
+      labels:
+        app: xray-sns-sqs-demo-hello
+    spec:
+      containers:
+      - name: xray-sns-sqs-demo-hello
+        image: 613477150601.dkr.ecr.ap-southeast-1.amazonaws.com/xray-sns-sqs-demo-hello:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+        env:
+        - name: OTEL_PROPAGATORS
+          value: "xray"
+        - name: OTEL_TRACES_IDGENERATOR
+          value: "xray"
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: "http://adot-collector-collector.observability:4317"
+        - name: OTEL_RESOURCE_ATTRIBUTES
+          value: "service.name=xray-sns-sqs-demo-hello,cloud.platform=aws_eks"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xray-sns-sqs-demo-world
+spec:
+  selector:
+    matchLabels:
+      app: xray-sns-sqs-demo-world
+  replicas: 1 # tells deployment to run 2 pods matching the template
+  template:
+    metadata:
+      labels:
+        app: xray-sns-sqs-demo-world
+    spec:
+      containers:
+      - name: xray-sns-sqs-demo-world
+        image: 613477150601.dkr.ecr.ap-southeast-1.amazonaws.com/xray-sns-sqs-demo-world:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8081
+        env:
+        - name: OTEL_PROPAGATORS
+          value: "xray"
+        - name: OTEL_TRACES_IDGENERATOR
+          value: "xray"
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: "http://adot-collector-collector.observability:4317"
+        - name: OTEL_RESOURCE_ATTRIBUTES
+          value: "service.name=xray-sns-sqs-demo-world,cloud.platform=aws_eks"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello
+  # annotations:
+  #   service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+  #   service.beta.kubernetes.io/aws-load-balancer-scheme: "internal"
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: http
+  selector:
+    app: xray-sns-sqs-demo-hello
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: world
+  # annotations:
+  #   service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+  #   service.beta.kubernetes.io/aws-load-balancer-scheme: "internal"
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8081
+      targetPort: 8081
+      protocol: TCP
+      name: http
+  selector:
+    app: xray-sns-sqs-demo-world
